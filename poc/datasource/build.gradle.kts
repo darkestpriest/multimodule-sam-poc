@@ -6,6 +6,7 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
     implementation(project(":poc:model"))
+    implementation(project(":poc:support"))
 
     implementation(platform("software.amazon.awssdk:bom:2.15.21"))
     implementation("software.amazon.awssdk:dynamodb") {
