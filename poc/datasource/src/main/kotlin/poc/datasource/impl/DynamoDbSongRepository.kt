@@ -11,6 +11,13 @@ class DynamoDbSongRepository(
         private val dynamoDbClient: DynamoDbClient,
         private val table: String
 ) : SongRepository {
+
+    companion object {
+        const val secondaryIndexName = "artist_idx"
+
+        private const val artistKey = ":art"
+    }
+
     override fun findBy(names: List<String>): Set<Song> =
             names.map {
                 mapOf("name" to AttributeValue.builder().s(it).build())
@@ -31,13 +38,21 @@ class DynamoDbSongRepository(
                 }?.toSet() ?: emptySet()
             }
 
-    override fun findBySongName(name: String): Song? {
-        TODO("Not yet implemented")
-    }
+    override fun findBySongName(name: String): Song? =
+            dynamoDbClient.getItem { it
+                    .tableName(table)
+                    .key(mapOf(*name.toAttribute(DynamoDbSongTableField.NAME)))
+            }.let { response ->
+                response.takeIf { it.hasItem() }?.item()?.toSong()
+            }
 
-    override fun findByArtist(artist: Artist): Set<Song> {
-        TODO("Not yet implemented")
-    }
+    override fun findByArtist(artist: Artist): Set<Song> =
+            dynamoDbClient.queryPaginator { it
+                    .tableName(table).indexName(secondaryIndexName)
+                    .keyConditionExpression("${DynamoDbSongTableField.ARTIST.lowercase()} = $artistKey")
+                    .expressionAttributeValues(mapOf(artistKey to artist.toSAttribute { a -> a.toJsonString() }))
+            }.items()?.toList()?.toSongs()?.toSet()
+                    ?: emptySet()
 
     override fun save(song: Song): Boolean =
             dynamoDbClient.putItem { it

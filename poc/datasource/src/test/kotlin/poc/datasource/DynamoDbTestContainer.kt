@@ -4,6 +4,7 @@ import org.junit.AssumptionViolatedException
 import org.testcontainers.containers.ContainerLaunchException
 import org.testcontainers.containers.localstack.LocalStackContainer
 import poc.datasource.DynamoDbTestContainer.songTable
+import poc.datasource.impl.DynamoDbSongRepository.Companion.secondaryIndexName
 import poc.datasource.impl.DynamoDbSongTableField
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
@@ -30,12 +31,26 @@ private fun createTable(client: DynamoDbClient) {
                     AttributeDefinition
                             .builder()
                             .attributeName(DynamoDbSongTableField.NAME.lowercase())
+                            .attributeType(ScalarAttributeType.S).build(),
+                    AttributeDefinition
+                            .builder()
+                            .attributeName(DynamoDbSongTableField.ARTIST.lowercase())
                             .attributeType(ScalarAttributeType.S).build()
             )
             .billingMode(BillingMode.PAY_PER_REQUEST)
             .provisionedThroughput(ProvisionedThroughput.builder().readCapacityUnits(100).writeCapacityUnits(100).build())
             .keySchema(
                     KeySchemaElement.builder().attributeName(DynamoDbSongTableField.NAME.lowercase()).keyType(KeyType.HASH).build()
+            )
+            .globalSecondaryIndexes(
+                    GlobalSecondaryIndex.builder()
+                            .indexName(secondaryIndexName)
+                            .keySchema(
+                                    KeySchemaElement.builder().attributeName(DynamoDbSongTableField.ARTIST.lowercase()).keyType(KeyType.HASH).build(),
+                                    KeySchemaElement.builder().attributeName(DynamoDbSongTableField.NAME.lowercase()).keyType(KeyType.RANGE).build()
+                            )
+                            .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
+                            .build()
             )
             .build()
     client.createTable(createTableRequest)

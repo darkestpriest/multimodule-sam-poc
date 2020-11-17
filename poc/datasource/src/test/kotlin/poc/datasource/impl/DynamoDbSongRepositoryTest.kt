@@ -10,6 +10,7 @@ import poc.model.Artist
 import poc.model.Song
 import poc.model.Style
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class DynamoDbSongRepositoryTest {
 
@@ -40,10 +41,49 @@ class DynamoDbSongRepositoryTest {
         )
     }
 
-    private fun saveSong() : Song =
+    @Test
+    fun `returns null on not found song by name`() {
+        /*save any song in database*/saveSong()
+
+        assertNull(sut.findBySongName(randomString()))
+    }
+
+    @Test
+    fun `retrieve song by name`() {
+        val expected = saveSong()
+        /*save any song in database*/saveSong()
+
+        assertEquals(
+                expected, sut.findBySongName(expected.name)
+        )
+    }
+
+    @Test
+    fun `retrieve empty song set by not found songs by artist`() {
+        /*save any song in database*/saveSong()
+
+        assertEquals(
+                emptySet(), sut.findByArtist(artist())
+        )
+    }
+
+    @Test
+    fun `retrieve song set found songs by artist`() {
+        val artist = artist()
+        val expected = 0.rangeTo(5).map {
+            saveSong(artist)
+        }.toSet()
+        /*save any song in database*/saveSong()
+
+        assertEquals(
+                expected, sut.findByArtist(artist)
+        )
+    }
+
+    private fun saveSong(artist: Artist = artist()) : Song =
             Song(
                     name = randomString(),
-                    artist = artist(),
+                    artist = artist,
                     style = Style.PROGRESSIVE_METAL
             ).also {
                 sut.save(it)

@@ -21,18 +21,20 @@ fun Song.toAttributes() = mapOf(
         *style.toAttribute(DynamoDbSongTableField.STYLE)
 )
 
-private fun Any?.toAttribute(field: DynamoDbSongTableField) =
+fun Any?.toAttribute(field: DynamoDbSongTableField) =
         this.toAttributeFor(field.lowercase())
+fun Artist.toJsonString() = this.encode()
+
 private fun Any?.toAttributeFor(key: String) =
         (if(this != null) arrayOf(key to this.toSAttribute { it.toString() }) else arrayOf())
 
-private fun Artist.toJsonAttribute(field: DynamoDbSongTableField) = this.encode().toAttribute(field)
+private fun Artist.toJsonAttribute(field: DynamoDbSongTableField) = this.toJsonString().toAttribute(field)
 
 private fun AttributeValue?.toArtist() = this.toS().decode<Artist>()
 private fun AttributeValue?.toS() = this?.s()!!
 private fun AttributeValue?.toStyle(): Style = enumValueOf(this.toS())
 
-private fun <T> T.toSAttribute(transform: (T) -> String): AttributeValue =
+fun <T> T.toSAttribute(transform: (T) -> String): AttributeValue =
         AttributeValue.builder().s(transform.invoke(this)).build()
 
 private operator fun Map<String, AttributeValue>.get(field: DynamoDbSongTableField) = this[field.lowercase()]
